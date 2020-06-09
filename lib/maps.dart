@@ -13,7 +13,6 @@ class MyMapSampleState extends State<MyMap> {
   @override
   Widget build(BuildContext context) {
     return new Scaffold(
-      appBar: AppBar(title: Text('Tags Map')),
       body: GoogleMap(
         scrollGesturesEnabled: true,
         tiltGesturesEnabled: true,
@@ -24,31 +23,6 @@ class MyMapSampleState extends State<MyMap> {
           zoom: 11,
         ),
         markers: _markers.values.toSet(),
-      ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: <Widget>[
-            DrawerHeader(
-              child: Text('Drawer Header'),
-              decoration: BoxDecoration(
-                color: Colors.blue,
-              ),
-            ),
-            ListTile(
-              title: Text('Item 1'),
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              title: Text('Item 2'),
-              onTap: () {
-                Navigator.pop(context);
-              },
-            ),
-          ],
-        ),
       ),
     );
   }
