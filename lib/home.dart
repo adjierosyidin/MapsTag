@@ -1,12 +1,33 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:maps_tags/auth/login_register.dart';
+import 'package:maps_tags/api/network.dart';
 import 'package:maps_tags/maps.dart';
+import 'package:maps_tags/auth/logout.dart';
 import 'package:maps_tags/drawer_item.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class NavigationDrawer extends StatefulWidget {
-  _NavigationDrawerState createState() => _NavigationDrawerState();
+class Home extends StatefulWidget {
+  _HomeState createState() => _HomeState();
 }
 
-class _NavigationDrawerState extends State<NavigationDrawer> {
+class _HomeState extends State<Home> {
+  var userData;
+  @override
+  void initState() {
+    _loadUserData();
+    super.initState();
+  }
+
+  _loadUserData() async {
+    SharedPreferences localStorage = await SharedPreferences.getInstance();
+    var userJson = localStorage.getString('user');
+    var user = json.decode(userJson);
+    setState(() {
+      userData = user;
+    });
+  }
+
   int _selectionIndex = 0;
   final drawerItems = [
     DrawerItem("Home", Icons.home),
@@ -17,11 +38,11 @@ class _NavigationDrawerState extends State<NavigationDrawer> {
   _getDrawerItemScreen(int pos) {
     switch (pos) {
       case 1:
-        return MyMap();
+        return Home();
       case 2:
-        return NavigationDrawer();
+        return Logout();
       default:
-        return NavigationDrawer();
+        return Home();
     }
   }
 
@@ -68,8 +89,12 @@ class _NavigationDrawerState extends State<NavigationDrawer> {
                 backgroundImage:
                     NetworkImage("http://tineye.com/images/widgets/mona.jpg"),
               ),
-              accountName: Text('Hi, Adjie Rosyidin'),
-              accountEmail: Text('adjierosyidin48@gmail.com'),
+              accountName: Text(
+                userData != null ? 'Hi, ' + '${userData['name']}' : 'Hi, ' + '',
+              ),
+              accountEmail: Text(
+                userData != null ? '${userData['email']}' : '',
+              ),
             ),
             Column(
               children: drawerOptions,

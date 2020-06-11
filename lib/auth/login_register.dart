@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:maps_tags/navigation_drawer.dart';
+import 'package:maps_tags/api/network.dart';
+import 'package:maps_tags/home.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginRegister extends StatefulWidget {
   @override
@@ -8,9 +12,14 @@ class LoginRegister extends StatefulWidget {
 
 class _LoginRegisterState extends State<LoginRegister> {
   final _formKey = new GlobalKey<FormState>();
+  TextEditingController name = TextEditingController();
+  TextEditingController password = TextEditingController();
+  TextEditingController email = TextEditingController();
+  TextEditingController passwordConf = TextEditingController();
 
   String _email;
   String _password;
+  String _passwordConf;
   String _errorMessage;
 
   bool _isLoginForm;
@@ -36,15 +45,30 @@ class _LoginRegisterState extends State<LoginRegister> {
     });
   }
 
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
+  _showMsg(msg) {
+    final snackBar = SnackBar(
+      content: Text(msg),
+      action: SnackBarAction(
+        label: 'Close',
+        onPressed: () {
+          // Some code to undo the change!
+        },
+      ),
+    );
+    _scaffoldKey.currentState.showSnackBar(snackBar);
+  }
+
   @override
   Widget build(BuildContext context) {
     return new Scaffold(
+        key: _scaffoldKey,
         appBar: new AppBar(
-          title: new Text('Login Form'),
+          title: new Text(_isLoginForm ? 'Login Form' : 'Register Form'),
         ),
         body: Stack(
           children: <Widget>[
-            _showForm(),
+            _isLoginForm ? _showFormLogin() : _showFormRegister(),
             _showCircularProgress(),
           ],
         ));
@@ -60,7 +84,7 @@ class _LoginRegisterState extends State<LoginRegister> {
     );
   }
 
-  Widget _showForm() {
+  Widget _showFormLogin() {
     return new Container(
         padding: EdgeInsets.all(16.0),
         child: new Form(
@@ -71,6 +95,27 @@ class _LoginRegisterState extends State<LoginRegister> {
               showLogo(),
               showEmailInput(),
               showPasswordInput(),
+              showPrimaryButton(),
+              showSecondaryButton(),
+              showErrorMessage(),
+            ],
+          ),
+        ));
+  }
+
+  Widget _showFormRegister() {
+    return new Container(
+        padding: EdgeInsets.all(16.0),
+        child: new Form(
+          key: _formKey,
+          child: new ListView(
+            shrinkWrap: true,
+            children: <Widget>[
+              showLogo(),
+              showNameInput(),
+              showEmailInput(),
+              showPasswordInput(),
+              showPasswordConfInput(),
               showPrimaryButton(),
               showSecondaryButton(),
               showErrorMessage(),
@@ -110,12 +155,31 @@ class _LoginRegisterState extends State<LoginRegister> {
     );
   }
 
+  Widget showNameInput() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0.0, 50.0, 0.0, 0.0),
+      child: new TextFormField(
+        controller: name,
+        maxLines: 1,
+        keyboardType: TextInputType.text,
+        autofocus: false,
+        decoration: new InputDecoration(
+            hintText: 'Name',
+            icon: new Icon(
+              Icons.person,
+              color: Colors.grey,
+            )),
+        validator: (value) => value.isEmpty ? 'Name can\'t be empty' : null,
+        onSaved: (value) => _email = value.trim(),
+      ),
+    );
+  }
+
   Widget showEmailInput() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(0.0, 100.0, 0.0, 0.0),
+      padding: const EdgeInsets.fromLTRB(0.0, 15.0, 0.0, 0.0),
       child: new TextFormField(
-        maxLines: 1,
-        keyboardType: TextInputType.emailAddress,
+        controller: email,
         autofocus: false,
         decoration: new InputDecoration(
             hintText: 'Email',
@@ -133,6 +197,7 @@ class _LoginRegisterState extends State<LoginRegister> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(0.0, 15.0, 0.0, 0.0),
       child: new TextFormField(
+        controller: password,
         maxLines: 1,
         obscureText: true,
         autofocus: false,
@@ -144,6 +209,26 @@ class _LoginRegisterState extends State<LoginRegister> {
             )),
         validator: (value) => value.isEmpty ? 'Password can\'t be empty' : null,
         onSaved: (value) => _password = value.trim(),
+      ),
+    );
+  }
+
+  Widget showPasswordConfInput() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0.0, 15.0, 0.0, 0.0),
+      child: new TextFormField(
+        controller: passwordConf,
+        maxLines: 1,
+        obscureText: true,
+        autofocus: false,
+        decoration: new InputDecoration(
+            hintText: 'Password Confirmation',
+            icon: new Icon(
+              Icons.lock,
+              color: Colors.grey,
+            )),
+        validator: (value) => value.isEmpty ? 'Password can\'t be empty' : null,
+        onSaved: (value) => _passwordConf = value.trim(),
       ),
     );
   }
@@ -169,14 +254,73 @@ class _LoginRegisterState extends State<LoginRegister> {
             child: new Text(_isLoginForm ? 'Login' : 'Create account',
                 style: new TextStyle(fontSize: 20.0, color: Colors.white)),
             onPressed: () {
-              Navigator.push(
+              if (_formKey.currentState.validate()) {
+                _isLoginForm ? _login() : _register();
+              }
+              /* Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
                   builder: (context) => NavigationDrawer(),
                 ),
-              );
+              ); */
             },
           ),
         ));
+  }
+
+  void _login() async {
+    setState(() {
+      _isLoading = true;
+    });
+    var data = {'email': email.text, 'password': password.text};
+
+    var res = await Network().authData(data, 'login');
+    var body = json.decode(res.body);
+    if (body['success']) {
+      SharedPreferences localStorage = await SharedPreferences.getInstance();
+      localStorage.setString('token', json.encode(body['data']['token']));
+      localStorage.setString('user', json.encode(body['data']['user']));
+      Navigator.pushReplacement(
+        context,
+        new MaterialPageRoute(builder: (context) => Home()),
+      );
+    } else {
+      _showMsg(body['message']);
+    }
+
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
+  void _register() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    var data = {
+      'name': name.text,
+      'email': email.text,
+      'password': password.text,
+      'password_confirmation': passwordConf.text
+    };
+
+    var res = await Network().authData(data, 'register');
+    var body = json.decode(res.body);
+    if (body['success']) {
+      SharedPreferences localStorage = await SharedPreferences.getInstance();
+      localStorage.setString('token', json.encode(body['data']['token']));
+      localStorage.setString('user', json.encode(body['data']['user']));
+      Navigator.pushReplacement(
+        context,
+        new MaterialPageRoute(builder: (context) => Home()),
+      );
+    } else {
+      _showMsg(body['message']);
+    }
+
+    setState(() {
+      _isLoading = false;
+    });
   }
 }

@@ -1,6 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:maps_tags/api/network.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MyMap extends StatefulWidget {
   @override
@@ -10,21 +14,98 @@ class MyMap extends StatefulWidget {
 final Map<String, Marker> _markers = {};
 
 class MyMapSampleState extends State<MyMap> {
+  static LatLng _initialPosition;
+  var tagData;
+
+  @override
+  void initState() {
+    _getLocation();
+    getTags();
+    _loadTags();
+    super.initState();
+  }
+
+  final scaffoldKey = GlobalKey<ScaffoldState>();
+  _showMsg(msg) {
+    final snackBar = SnackBar(
+      content: Text(msg),
+      action: SnackBarAction(
+        label: 'Close',
+        onPressed: () {
+          // Some code to undo the change!
+        },
+      ),
+    );
+    scaffoldKey.currentState.showSnackBar(snackBar);
+  }
+
   @override
   Widget build(BuildContext context) {
     return new Scaffold(
-      body: GoogleMap(
-        scrollGesturesEnabled: true,
-        tiltGesturesEnabled: true,
-        rotateGesturesEnabled: true,
-        myLocationEnabled: true,
-        initialCameraPosition: CameraPosition(
-          target: LatLng(40.688841, -74.044015),
-          zoom: 11,
-        ),
-        markers: _markers.values.toSet(),
-      ),
+      key: scaffoldKey,
+      body: _initialPosition == null
+          ? Container(
+              child: Center(
+                child: Text(
+                  'loading map..',
+                  style: TextStyle(
+                      fontFamily: 'Avenir-Medium', color: Colors.grey[400]),
+                ),
+              ),
+            )
+          : Container(
+              child: Stack(
+                children: <Widget>[
+                  GoogleMap(
+                    scrollGesturesEnabled: true,
+                    tiltGesturesEnabled: true,
+                    myLocationEnabled: true,
+                    rotateGesturesEnabled: true,
+                    initialCameraPosition: CameraPosition(
+                      target: _initialPosition,
+                      /* ? LatLng(40.688841, -74.044015)
+                          : _initialPosition, */
+                      zoom: 11,
+                    ),
+                    markers: _markers.values.toSet(),
+                  ),
+                ],
+              ),
+            ),
     );
+  }
+
+  _loadTags() async {
+    SharedPreferences localStorage = await SharedPreferences.getInstance();
+    var tagJson = localStorage.getString('tags');
+    var tag = json.decode(tagJson);
+    setState(() {
+      tagData = tag;
+    });
+  }
+
+  void getTags() async {
+    var res = await Network().getData('v1/tags');
+    var body = json.decode(res.body);
+    print(res.statusCode);
+    if (res.statusCode == 200) {
+      SharedPreferences localStorage = await SharedPreferences.getInstance();
+      localStorage.setString('tags', json.encode(body['data']));
+    } else {
+      _showMsg("Data Tags Gagal dimuat");
+    }
+  }
+
+  void getMarkerTags() async {
+    setState(() {
+      _markers.clear();
+      final marker = Marker(
+        markerId: MarkerId("curr_loc"),
+        position: LatLng(-6, 112),
+        infoWindow: InfoWindow(title: 'Name'),
+      );
+      _markers["Current Location"] = marker;
+    });
   }
 
   void _getLocation() async {
@@ -32,6 +113,8 @@ class MyMapSampleState extends State<MyMap> {
         .getCurrentPosition(desiredAccuracy: LocationAccuracy.best);
 
     setState(() {
+      _initialPosition =
+          LatLng(currentLocation.latitude, currentLocation.longitude);
       _markers.clear();
       final marker = Marker(
         markerId: MarkerId("curr_loc"),
