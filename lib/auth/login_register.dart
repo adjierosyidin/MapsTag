@@ -157,7 +157,7 @@ class _LoginRegisterState extends State<LoginRegister> {
 
   Widget showNameInput() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(0.0, 50.0, 0.0, 0.0),
+      padding: const EdgeInsets.fromLTRB(0.0, 15.0, 0.0, 0.0),
       child: new TextFormField(
         controller: name,
         maxLines: 1,

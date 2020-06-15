@@ -20,8 +20,6 @@ class MyMapSampleState extends State<MyMap> {
   @override
   void initState() {
     _getLocation();
-    getTags();
-    _loadTags();
     super.initState();
   }
 
@@ -37,6 +35,26 @@ class MyMapSampleState extends State<MyMap> {
       ),
     );
     scaffoldKey.currentState.showSnackBar(snackBar);
+  }
+
+  _onMapCreated(GoogleMapController controller) async {
+    final mapTag = await getTags();
+    /* print(mapTag); */
+    setState(() {
+      _markers.clear();
+      for (final tag in mapTag['data']) {
+        final marker = Marker(
+          markerId: MarkerId(tag['name']),
+          position: LatLng(
+              double.parse(tag['latitude']), double.parse(tag['longitude'])),
+          infoWindow: InfoWindow(
+            title: tag['name'],
+            snippet: tag['address'],
+          ),
+        );
+        _markers[tag['name']] = marker;
+      }
+    });
   }
 
   @override
@@ -57,6 +75,7 @@ class MyMapSampleState extends State<MyMap> {
               child: Stack(
                 children: <Widget>[
                   GoogleMap(
+                    onMapCreated: _onMapCreated,
                     scrollGesturesEnabled: true,
                     tiltGesturesEnabled: true,
                     myLocationEnabled: true,
@@ -84,28 +103,19 @@ class MyMapSampleState extends State<MyMap> {
     });
   }
 
-  void getTags() async {
+  getTags() async {
     var res = await Network().getData('v1/tags');
     var body = json.decode(res.body);
-    print(res.statusCode);
+    /* print(res.statusCode); */
     if (res.statusCode == 200) {
       SharedPreferences localStorage = await SharedPreferences.getInstance();
-      localStorage.setString('tags', json.encode(body['data']));
+      localStorage.setString('tags', json.encode(body));
+      var tagJson = localStorage.getString('tags');
+      var tag = json.decode(tagJson);
+      return tag;
     } else {
       _showMsg("Data Tags Gagal dimuat");
     }
-  }
-
-  void getMarkerTags() async {
-    setState(() {
-      _markers.clear();
-      final marker = Marker(
-        markerId: MarkerId("curr_loc"),
-        position: LatLng(-6, 112),
-        infoWindow: InfoWindow(title: 'Name'),
-      );
-      _markers["Current Location"] = marker;
-    });
   }
 
   void _getLocation() async {
@@ -115,7 +125,7 @@ class MyMapSampleState extends State<MyMap> {
     setState(() {
       _initialPosition =
           LatLng(currentLocation.latitude, currentLocation.longitude);
-      _markers.clear();
+      /* _markers.clear(); */
       final marker = Marker(
         markerId: MarkerId("curr_loc"),
         position: LatLng(currentLocation.latitude, currentLocation.longitude),

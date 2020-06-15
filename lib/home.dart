@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:maps_tags/auth/login_register.dart';
 import 'package:maps_tags/api/network.dart';
+import 'package:maps_tags/input_tag.dart';
 import 'package:maps_tags/maps.dart';
 import 'package:maps_tags/auth/logout.dart';
 import 'package:maps_tags/drawer_item.dart';
@@ -38,11 +39,11 @@ class _HomeState extends State<Home> {
   _getDrawerItemScreen(int pos) {
     switch (pos) {
       case 1:
-        return Home();
+        return InputTag();
       case 2:
         return Logout();
       default:
-        return Home();
+        return MyMap();
     }
   }
 
@@ -51,12 +52,16 @@ class _HomeState extends State<Home> {
       _selectionIndex = index;
       _getDrawerItemScreen(_selectionIndex);
     });
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => _getDrawerItemScreen(_selectionIndex),
-      ),
-    );
+    if (index == 2) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => _getDrawerItemScreen(_selectionIndex),
+        ),
+      );
+    } else {
+      Navigator.of(context).pop();
+    }
   }
 
   @override
@@ -102,7 +107,7 @@ class _HomeState extends State<Home> {
           ],
         ),
       ),
-      body: MyMap(),
+      body: _getDrawerItemScreen(_selectionIndex),
     );
   }
 }

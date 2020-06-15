@@ -17,6 +17,7 @@ class _LogoutState extends State<Logout> {
       SharedPreferences localStorage = await SharedPreferences.getInstance();
       localStorage.remove('user');
       localStorage.remove('token');
+      localStorage.remove('tags');
     }
   }
 

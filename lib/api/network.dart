@@ -1,12 +1,13 @@
 import 'dart:convert';
+import 'package:dio/dio.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Network {
   final String _url = 'http://192.168.1.101/locationtags/public/api/';
-  var token;
+  var token, myToken;
 
-  _getToken() async {
+  getToken() async {
     SharedPreferences localStorage = await SharedPreferences.getInstance();
     token = localStorage.getString('token');
     return '$token';
@@ -18,11 +19,43 @@ class Network {
         body: jsonEncode(data), headers: _setHeaders());
   }
 
-  getData(apiUrl) async {
+  storeDataTag(data, apiUrl) async {
     var fullUrl = _url + apiUrl;
-    token = await _getToken();
+    var uri = Uri.parse(fullUrl);
+    var request = new http.MultipartRequest("POST", uri);
+
+    request.headers.addAll({
+      'Content-type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': myToken
+    });
+  }
+
+  authDataTag(data, apiUrl) async {
+    var fullUrl = _url + apiUrl;
+    token = await getToken();
     var auth = 'Bearer $token';
     var token2 = auth.replaceAll(new RegExp('"'), '');
+    print(token2);
+    /* Dio dio = new Dio();
+
+    dio.options.headers['Authorization'] = token2;
+    dio.options.headers['Accept'] = "application/json";
+    dio.options.headers["Content-Type"] = "application/json"; */
+
+    return await http.post(fullUrl, body: jsonEncode(data), headers: {
+      'Content-type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': token2
+    });
+  }
+
+  getData(apiUrl) async {
+    var fullUrl = _url + apiUrl;
+    token = await getToken();
+    var auth = 'Bearer $token';
+    var token2 = auth.replaceAll(new RegExp('"'), '');
+    myToken = token2;
     /* print(token2); */
     return await http.get(fullUrl, headers: {
       'Content-type': 'application/json',
@@ -34,6 +67,5 @@ class Network {
   _setHeaders() => {
         'Content-type': 'application/json',
         'Accept': 'application/json',
-        'Authorization': 'Bearer $token'
       };
 }
