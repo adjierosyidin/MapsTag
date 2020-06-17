@@ -15,7 +15,6 @@ final Map<String, Marker> _markers = {};
 
 class MyMapSampleState extends State<MyMap> {
   static LatLng _initialPosition;
-  var tagData;
 
   @override
   void initState() {
@@ -92,15 +91,6 @@ class MyMapSampleState extends State<MyMap> {
               ),
             ),
     );
-  }
-
-  _loadTags() async {
-    SharedPreferences localStorage = await SharedPreferences.getInstance();
-    var tagJson = localStorage.getString('tags');
-    var tag = json.decode(tagJson);
-    setState(() {
-      tagData = tag;
-    });
   }
 
   getTags() async {

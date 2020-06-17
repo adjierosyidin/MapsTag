@@ -1,7 +1,5 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:maps_tags/auth/login_register.dart';
-import 'package:maps_tags/api/network.dart';
 import 'package:maps_tags/input_tag.dart';
 import 'package:maps_tags/maps.dart';
 import 'package:maps_tags/auth/logout.dart';
@@ -88,12 +86,12 @@ class _HomeState extends State<Home> {
         child: Column(
           children: <Widget>[
             UserAccountsDrawerHeader(
-              currentAccountPicture: new CircleAvatar(
+              /* currentAccountPicture: new CircleAvatar(
                 radius: 50.0,
                 backgroundColor: const Color(0xFF778899),
                 backgroundImage:
                     NetworkImage("http://tineye.com/images/widgets/mona.jpg"),
-              ),
+              ), */
               accountName: Text(
                 userData != null ? 'Hi, ' + '${userData['name']}' : 'Hi, ' + '',
               ),

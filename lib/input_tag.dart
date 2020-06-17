@@ -153,13 +153,26 @@ class _InputTagState extends State<InputTag> {
 
   File image;
 
-  Future getImage() async {
+  Future getImageGallery() async {
     final pickedFile = await picker.getImage(source: ImageSource.gallery);
 
     setState(() {
       _image = pickedFile;
       image = File(_image.path);
     });
+
+    Navigator.pop(this.context);
+  }
+
+  Future getImageCamera() async {
+    final pickedFile = await picker.getImage(source: ImageSource.camera);
+
+    setState(() {
+      _image = pickedFile;
+      image = File(_image.path);
+    });
+
+    Navigator.pop(this.context);
   }
 
   Widget showImage() {
@@ -167,13 +180,75 @@ class _InputTagState extends State<InputTag> {
       padding: const EdgeInsets.fromLTRB(0.0, 15.0, 0.0, 0.0),
       child: new Center(
         child: _image == null
-            ? Container(color: Colors.grey, child: Text('No image selected.'))
-            : Image.file(File(_image.path)),
+            ? Text('No image selected.')
+            : Image.file(
+                File(_image.path),
+                fit: BoxFit.cover,
+              ),
       ),
     );
   }
 
+  void _openImagePickerModal(BuildContext context) {
+    final flatButtonColor = Theme.of(context).primaryColor;
+    print('Image Picker Modal Called');
+    showModalBottomSheet(
+        context: context,
+        builder: (BuildContext context) {
+          return Container(
+            height: 150.0,
+            padding: EdgeInsets.all(10.0),
+            child: Column(
+              children: <Widget>[
+                Text(
+                  'Pick an image',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                SizedBox(
+                  height: 10.0,
+                ),
+                FlatButton(
+                  textColor: flatButtonColor,
+                  child: Text('Use Camera'),
+                  onPressed: () {
+                    getImageCamera();
+                  },
+                ),
+                FlatButton(
+                  textColor: flatButtonColor,
+                  child: Text('Use Gallery'),
+                  onPressed: () {
+                    getImageGallery();
+                  },
+                ),
+              ],
+            ),
+          );
+        });
+  }
+
   Widget showImageInput() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 40.0, left: 10.0, right: 10.0),
+      child: OutlineButton(
+        onPressed: () => _openImagePickerModal(this.context),
+        borderSide:
+            BorderSide(color: Theme.of(this.context).accentColor, width: 1.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Icon(Icons.camera_alt),
+            SizedBox(
+              width: 5.0,
+            ),
+            Text('Add Image'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /* Widget showImageGalleryInput() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(0.0, 15.0, 0.0, 0.0),
       child: new FlatButton(
@@ -183,11 +258,11 @@ class _InputTagState extends State<InputTag> {
           style: TextStyle(color: Colors.black),
         ),
         onPressed: () {
-          getImage();
+          getImageGallery();
         },
       ),
     );
-  }
+  } */
 
   Widget showAddressInput() {
     return Padding(

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:maps_tags/api/network.dart';
 import 'package:maps_tags/home.dart';
 import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginRegister extends StatefulWidget {
