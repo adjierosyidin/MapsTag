@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Network {
-  final String _url = 'http://192.168.1.101/locationtags/public/api/';
+  final String _url = 'http://202.57.31.53:5151/MapsTagLaravel/public/api/';
   var token, myToken;
 
   getToken() async {

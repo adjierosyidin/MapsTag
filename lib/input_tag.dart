@@ -1,8 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:async/async.dart';
+import 'package:flutter/services.dart';
+import 'package:image/image.dart' as imge;
 import 'package:path/path.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -154,7 +158,8 @@ class _InputTagState extends State<InputTag> {
   File image;
 
   Future getImageGallery() async {
-    final pickedFile = await picker.getImage(source: ImageSource.gallery);
+    final pickedFile = await picker.getImage(
+        source: ImageSource.gallery, maxWidth: 756, imageQuality: 80);
 
     setState(() {
       _image = pickedFile;
@@ -165,14 +170,18 @@ class _InputTagState extends State<InputTag> {
   }
 
   Future getImageCamera() async {
-    final pickedFile = await picker.getImage(source: ImageSource.camera);
-
+    Navigator.pop(this.context);
+    final pickedFile = await picker.getImage(
+        source: ImageSource.camera, maxWidth: 756, imageQuality: 80);
     setState(() {
       _image = pickedFile;
       image = File(_image.path);
-    });
+      /* var img = imge.decodeImage(new File(image.path).readAsBytesSync());
 
-    Navigator.pop(this.context);
+      var thumbnail = imge.copyResize(img, width: 512);
+
+      File(image.path).writeAsBytesSync(imge.encodePng(thumbnail)); */
+    });
   }
 
   Widget showImage() {
@@ -443,7 +452,7 @@ class _InputTagState extends State<InputTag> {
     var length = await image.length();
 
     var postUri =
-        Uri.parse("http://192.168.1.101/locationtags/public/api/v1/tags");
+        Uri.parse("http://202.57.31.53:5151/MapsTagLaravel/public/api/v1/tags");
     var request = new http.MultipartRequest("POST", postUri);
 
     var act;
@@ -459,6 +468,9 @@ class _InputTagState extends State<InputTag> {
     request.fields['latitude'] = lat.text;
     request.fields['longitude'] = lng.text;
     request.fields['active'] = act.toString();
+    request.fields['created_by_id'] = userData['id'].toString();
+
+    print(userData['id']);
 
     var multipartFile = new http.MultipartFile('img', stream, length,
         filename: basename(image.path));
@@ -484,6 +496,8 @@ class _InputTagState extends State<InputTag> {
     } else {
       _showMsg('Tags Gagal Ditambahkan');
     }
+
+    print(res.statusCode);
 
     setState(() {
       _isLoading = false;
