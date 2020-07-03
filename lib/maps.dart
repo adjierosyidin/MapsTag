@@ -1,10 +1,15 @@
 import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:maps_tags/api/network.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 class MyMap extends StatefulWidget {
   @override
@@ -36,24 +41,59 @@ class MyMapSampleState extends State<MyMap> {
     scaffoldKey.currentState.showSnackBar(snackBar);
   }
 
+  _getIcon(String color) async {
+    var pinColor = color;
+    var iconurl =
+        "http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=%E2%80%A2|" +
+            pinColor;
+    /* var dataBytes;
+    var request = await http.get(iconurl);
+    var bytes = await request.bodyBytes;
+
+    setState(() {
+      dataBytes = bytes;
+    }); */
+
+    final int targetWidth = 60;
+    final File markerImageFile =
+        await DefaultCacheManager().getSingleFile(iconurl);
+    final Uint8List markerImageBytes = await markerImageFile.readAsBytes();
+
+    final markerImageCodec = await instantiateImageCodec(
+      markerImageBytes,
+      targetWidth: targetWidth,
+    );
+
+    final FrameInfo frameInfo = await markerImageCodec.getNextFrame();
+    final ByteData byteData = await frameInfo.image.toByteData(
+      format: ImageByteFormat.png,
+    );
+
+    return BitmapDescriptor.fromBytes(byteData.buffer.asUint8List());
+  }
+
   _onMapCreated(GoogleMapController controller) async {
     final mapTag = await getTags();
     /* print(mapTag); */
-    setState(() {
-      _markers.clear();
-      for (final tag in mapTag['data']) {
-        final marker = Marker(
-          markerId: MarkerId(tag['name']),
-          position: LatLng(
-              double.parse(tag['latitude']), double.parse(tag['longitude'])),
-          infoWindow: InfoWindow(
-            title: tag['name'],
-            snippet: tag['address'],
-          ),
-        );
-        _markers[tag['name']] = marker;
-      }
-    });
+
+    _markers.clear();
+
+    for (final tag in mapTag['data']) {
+      String color = tag['tag_color'].toString();
+      final marker = Marker(
+        markerId: MarkerId(tag['name']),
+        icon: await _getIcon(color),
+        position: LatLng(
+            double.parse(tag['latitude']), double.parse(tag['longitude'])),
+        infoWindow: InfoWindow(
+          title: tag['name'],
+          snippet: tag['address'],
+        ),
+      );
+      _markers[tag['name']] = marker;
+    }
+
+    setState(() {});
   }
 
   @override
@@ -116,12 +156,12 @@ class MyMapSampleState extends State<MyMap> {
       _initialPosition =
           LatLng(currentLocation.latitude, currentLocation.longitude);
       /* _markers.clear(); */
-      final marker = Marker(
+      /* final marker = Marker(
         markerId: MarkerId("curr_loc"),
         position: LatLng(currentLocation.latitude, currentLocation.longitude),
         infoWindow: InfoWindow(title: 'Your Location'),
       );
-      _markers["Current Location"] = marker;
+      _markers["Current Location"] = marker; */
     });
   }
 }

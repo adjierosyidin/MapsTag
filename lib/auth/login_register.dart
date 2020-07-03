@@ -3,6 +3,7 @@ import 'package:maps_tags/api/network.dart';
 import 'package:maps_tags/home.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
 class LoginRegister extends StatefulWidget {
   @override
@@ -75,7 +76,13 @@ class _LoginRegisterState extends State<LoginRegister> {
 
   Widget _showCircularProgress() {
     if (_isLoading) {
-      return Center(child: CircularProgressIndicator());
+      return Center(
+          child: Column(
+        children: [
+          Padding(padding: EdgeInsets.only(top: 150)),
+          CircularProgressIndicator()
+        ],
+      ));
     }
     return Container(
       height: 0.0,
@@ -115,6 +122,7 @@ class _LoginRegisterState extends State<LoginRegister> {
               showEmailInput(),
               showPasswordInput(),
               showPasswordConfInput(),
+              showColorMarker(),
               showPrimaryButton(),
               showSecondaryButton(),
               showErrorMessage(),
@@ -144,7 +152,7 @@ class _LoginRegisterState extends State<LoginRegister> {
     return new Hero(
       tag: 'hero',
       child: Padding(
-        padding: EdgeInsets.fromLTRB(0.0, 70.0, 0.0, 0.0),
+        padding: EdgeInsets.fromLTRB(0.0, 0.0, 0.0, 0.0),
         child: CircleAvatar(
           backgroundColor: Colors.transparent,
           radius: 48.0,
@@ -214,7 +222,7 @@ class _LoginRegisterState extends State<LoginRegister> {
 
   Widget showPasswordConfInput() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(0.0, 15.0, 0.0, 0.0),
+      padding: const EdgeInsets.fromLTRB(0.0, 15.0, 0.0, 10.0),
       child: new TextFormField(
         controller: passwordConf,
         maxLines: 1,
@@ -229,6 +237,76 @@ class _LoginRegisterState extends State<LoginRegister> {
         validator: (value) => value.isEmpty ? 'Password can\'t be empty' : null,
         onSaved: (value) => _passwordConf = value.trim(),
       ),
+    );
+  }
+
+  static var pinColor = "FE7569";
+  String pickColor;
+
+  static parseColor(String color) {
+    String hex = color.replaceAll("#", "");
+    if (hex.isEmpty) hex = "ffffff";
+    if (hex.length == 3) {
+      hex =
+          '${hex.substring(0, 1)}${hex.substring(0, 1)}${hex.substring(1, 2)}${hex.substring(1, 2)}${hex.substring(2, 3)}${hex.substring(2, 3)}';
+    }
+    Color col = Color(int.parse(hex, radix: 16)).withOpacity(1.0);
+    return col;
+  }
+
+  Color currentColor = parseColor(pinColor);
+
+  void changeColor(Color color) {
+    setState(() {
+      currentColor = color;
+      pinColor = pickColor;
+    });
+  }
+
+  Widget showColorMarker() {
+    var myColor = currentColor;
+    String hex = '${myColor.value.toRadixString(16).substring(2)}';
+    pickColor = hex;
+    print(hex);
+    return new Row(
+      children: [
+        Image.network(
+            "http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=%E2%80%A2|" +
+                pinColor),
+        Padding(padding: EdgeInsets.only(right: 20)),
+        RaisedButton(
+          onPressed: () {
+            showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  titlePadding: const EdgeInsets.all(0.0),
+                  contentPadding: const EdgeInsets.all(0.0),
+                  content: SingleChildScrollView(
+                    child: ColorPicker(
+                      pickerColor: currentColor,
+                      onColorChanged: changeColor,
+                      colorPickerWidth: 300.0,
+                      pickerAreaHeightPercent: 0.7,
+                      enableAlpha: false,
+                      displayThumbColor: true,
+                      showLabel: true,
+                      paletteType: PaletteType.hsv,
+                      pickerAreaBorderRadius: const BorderRadius.only(
+                        topLeft: const Radius.circular(2.0),
+                        topRight: const Radius.circular(2.0),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+          child: const Text('Pick Color For Your Marker'),
+          /* color: currentColor, */
+          textColor: const Color(0xff000000),
+        ),
+      ],
     );
   }
 
@@ -301,7 +379,8 @@ class _LoginRegisterState extends State<LoginRegister> {
       'name': name.text,
       'email': email.text,
       'password': password.text,
-      'password_confirmation': passwordConf.text
+      'password_confirmation': passwordConf.text,
+      'tag_color': '#' + pickColor,
     };
 
     var res = await Network().authData(data, 'register');

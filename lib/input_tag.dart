@@ -452,7 +452,7 @@ class _InputTagState extends State<InputTag> {
     var length = await image.length();
 
     var postUri =
-        Uri.parse("http://202.57.31.53:5151/MapsTagLaravel/public/api/v1/tags");
+        Uri.parse("http://192.168.5.40/locationtags/public/api/v1/tags");
     var request = new http.MultipartRequest("POST", postUri);
 
     var act;
@@ -468,6 +468,7 @@ class _InputTagState extends State<InputTag> {
     request.fields['latitude'] = lat.text;
     request.fields['longitude'] = lng.text;
     request.fields['active'] = act.toString();
+    request.fields['tag_color'] = userData['tag_color'].toString();
     request.fields['created_by_id'] = userData['id'].toString();
 
     print(userData['id']);
