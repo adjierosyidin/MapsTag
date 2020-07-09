@@ -4,6 +4,7 @@ import 'package:maps_tags/input_tag.dart';
 import 'package:maps_tags/maps.dart';
 import 'package:maps_tags/auth/logout.dart';
 import 'package:maps_tags/drawer_item.dart';
+import 'package:maps_tags/mytags.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Home extends StatefulWidget {
@@ -30,14 +31,14 @@ class _HomeState extends State<Home> {
   int _selectionIndex = 0;
   final drawerItems = [
     DrawerItem("Home", Icons.home),
-    DrawerItem("Input Data", Icons.input),
+    DrawerItem("My Tags", Icons.location_on),
     DrawerItem("Logout", Icons.exit_to_app),
   ];
 
   _getDrawerItemScreen(int pos) {
     switch (pos) {
       case 1:
-        return InputTag();
+        return MyTagsApp();
       case 2:
         return Logout();
       default:

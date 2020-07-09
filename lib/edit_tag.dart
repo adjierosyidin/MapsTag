@@ -1,12 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:async/async.dart';
 import 'package:flutter/services.dart';
-import 'package:image/image.dart' as imge;
+import 'package:maps_tags/mytags.dart';
+import 'package:maps_tags/providers/tags_provider.dart';
 import 'package:path/path.dart';
 import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -15,14 +14,18 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:maps_tags/api/network.dart';
 import 'package:maps_tags/home.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class InputTag extends StatefulWidget {
+class EditTag extends StatefulWidget {
+  final String id;
+  EditTag({this.id});
+
   @override
-  _InputTagState createState() => _InputTagState();
+  _EditTagState createState() => _EditTagState();
 }
 
-class _InputTagState extends State<InputTag> {
+class _EditTagState extends State<EditTag> {
   final _formKey = new GlobalKey<FormState>();
   TextEditingController name = TextEditingController();
   TextEditingController description = TextEditingController();
@@ -37,22 +40,44 @@ class _InputTagState extends State<InputTag> {
   String _name;
   String _description;
   PickedFile _image;
+  String imageURL = 'http://192.168.5.40/locationtags/public/storage/1/a1.png';
+  List img;
   String _address;
   double _lat = -7.939794;
   double _lng = 112.621231;
 
-  bool _isLoading;
+  bool _isLoading = false;
 
   final picker = ImagePicker();
   static LatLng _initialPosition;
 
   @override
   void initState() {
-    _isLoading = false;
-    setState(() {
-      _loadUserData();
-      _getLocation();
+    Future.delayed(Duration.zero, () {
+      Provider.of<TagsProvider>(this.context, listen: false)
+          .findTags(widget.id)
+          .then((response) {
+        setState(() {
+          name.text = response.name;
+          description.text = response.description;
+          address.text = response.address;
+          lat.text = response.latitude;
+          lng.text = response.longitude;
+          /* act = response.active; */
+          img = response.image;
+          imageURL = img[0]['url'];
+          /* if (act == 1) {
+            activeValue = true;
+          } else {
+            activeValue = false;
+          } */
+          _lat = double.parse(response.latitude);
+          _lng = double.parse(response.longitude);
+          _getLocTag();
+        });
+      });
     });
+
     super.initState();
   }
 
@@ -210,7 +235,7 @@ class _InputTagState extends State<InputTag> {
       padding: const EdgeInsets.fromLTRB(0.0, 15.0, 0.0, 0.0),
       child: new Center(
         child: _image == null
-            ? Text('No image selected.')
+            ? Image.network(imageURL)
             : Image.file(
                 File(_image.path),
                 fit: BoxFit.cover,
@@ -271,7 +296,7 @@ class _InputTagState extends State<InputTag> {
             SizedBox(
               width: 5.0,
             ),
-            Text('Add Image'),
+            Text('Change Image'),
           ],
         ),
       ),
@@ -355,6 +380,19 @@ class _InputTagState extends State<InputTag> {
     );
   }
 
+  void _getLocTag() async {
+    setState(() {
+      _initialPosition = LatLng(_lat, _lng);
+
+      final marker = Marker(
+        markerId: MarkerId("tag"),
+        position: LatLng(_lat, _lng),
+        infoWindow: InfoWindow(title: 'Your Tag'),
+      );
+      _markers["Your Tag"] = marker;
+    });
+  }
+
   void _getLocation() async {
     var currentLocation = await Geolocator()
         .getCurrentPosition(desiredAccuracy: LocationAccuracy.best);
@@ -405,7 +443,8 @@ class _InputTagState extends State<InputTag> {
         child: mapView());
   }
 
-  /* bool activeValue = false;
+  /* var act;
+  bool activeValue = false;
 
   Widget showActiveInput() {
     return Padding(
@@ -432,7 +471,7 @@ class _InputTagState extends State<InputTag> {
             shape: new RoundedRectangleBorder(
                 borderRadius: new BorderRadius.circular(30.0)),
             color: Colors.blue,
-            child: new Text('Add Tag',
+            child: new Text('Update Tag',
                 style: new TextStyle(fontSize: 20.0, color: Colors.white)),
             onPressed: () {
               if (_formKey.currentState.validate()) {
@@ -469,34 +508,35 @@ class _InputTagState extends State<InputTag> {
       "Authorization": token2
     };
 
-    var stream = new http.ByteStream(DelegatingStream.typed(image.openRead()));
-    var length = await image.length();
+    var postUri = Uri.parse(
+        "http://192.168.5.40/locationtags/public/api/v1/tags/" + widget.id);
 
-    var postUri =
-        Uri.parse("http://192.168.5.40/locationtags/public/api/v1/tags");
     var request = new http.MultipartRequest("POST", postUri);
 
-    /* var act;
-    if (activeValue) {
+    /* if (activeValue) {
       act = 1;
     } else {
       act = 0;
     } */
 
+    request.fields['_method'] = 'PUT';
     request.fields['name'] = name.text;
     request.fields['description'] = description.text;
     request.fields['address'] = address.text;
     request.fields['latitude'] = lat.text;
     request.fields['longitude'] = lng.text;
     request.fields['active'] = '1';
-    request.fields['tag_color'] = userData['tag_color'].toString();
-    request.fields['created_by_id'] = userData['id'].toString();
+    /* request.fields['tag_color'] = userData['tag_color'].toString();
+    request.fields['created_by_id'] = userData['id'].toString(); */
 
-    print(userData['id']);
-
-    var multipartFile = new http.MultipartFile('img', stream, length,
-        filename: basename(image.path));
-    request.files.add(multipartFile);
+    if (image != null) {
+      var stream =
+          new http.ByteStream(DelegatingStream.typed(image.openRead()));
+      var length = await image.length();
+      var multipartFile = new http.MultipartFile('img', stream, length,
+          filename: basename(image.path));
+      request.files.add(multipartFile);
+    }
 
     request.headers.addAll(headers);
 
@@ -508,15 +548,13 @@ class _InputTagState extends State<InputTag> {
       resJson = value;
     });
 
-    if (res.statusCode == 201) {
+    if (res.statusCode == 202) {
       SharedPreferences localStorage = await SharedPreferences.getInstance();
       localStorage.setString('tags', json.encode(resJson));
-      Navigator.push(
-        this.context,
-        new MaterialPageRoute(builder: (context) => Home()),
-      );
+      Navigator.of(this.context)
+          .push(MaterialPageRoute(builder: (context) => MyTagsApp()));
     } else {
-      _showMsg('Tags Gagal Ditambahkan');
+      _showMsg('Tags Gagal Diedit');
     }
 
     print(res.statusCode);
